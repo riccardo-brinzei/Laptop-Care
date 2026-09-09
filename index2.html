@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laptop Care V3.1</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --bg2: #111827;
+      --panel: rgba(15, 23, 42, .92);
+      --panel-soft: rgba(30, 41, 59, .82);
+      --text: #f8fafc;
+      --muted: #b9c5d6;
+      --border: rgba(255,255,255,.12);
+      --accent: #38bdf8;
+      --accent2: #22d3ee;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --shadow: rgba(0,0,0,.38);
+    }
+
+    html[data-theme="light"] {
+      --bg: #e9f3fb;
+      --bg2: #f8fbff;
+      --panel: rgba(255,255,255,.94);
+      --panel-soft: rgba(239,246,255,.92);
+      --text: #102033;
+      --muted: #52677d;
+      --border: rgba(15, 23, 42, .14);
+      --accent: #0284c7;
+      --accent2: #0891b2;
+      --shadow: rgba(15,23,42,.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+        radial-gradient(circle at 88% 90%, color-mix(in srgb, var(--good) 10%, transparent), transparent 28%),
+        linear-gradient(135deg, var(--bg), var(--bg2));
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    button, select { font: inherit; }
+
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      min-height: 44px;
+      transition: transform .14s ease, filter .14s ease, background .2s ease;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    button:active { transform: translateY(0); }
+
+    .app { width: min(100%, 1100px); }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.3vw, 2.05rem);
+      letter-spacing: -.02em;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ghost-btn {
+      background: var(--panel);
+      color: var(--text);
+      padding: 9px 13px;
+      backdrop-filter: blur(10px);
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: minmax(210px, 1.5fr) repeat(4, minmax(90px, .65fr));
+      gap: 9px;
+      margin-bottom: 10px;
+    }
+
+    .hud-card {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 9px 11px;
+      box-shadow: 0 8px 24px var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hud-card small {
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .hud-card strong {
+      font-size: 1.12rem;
+    }
+
+    .health-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .health-track {
+      height: 11px;
+      flex: 1;
+      background: color-mix(in srgb, var(--text) 10%, transparent);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    #healthFill {
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #22c55e, #84cc16);
+      transition: width .18s ease;
+    }
+
+    .game-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: 0 22px 70px var(--shadow);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      touch-action: none;
+    }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      top: 8%;
+      transform: translate(-50%, -8px);
+      z-index: 8;
+      opacity: 0;
+      pointer-events: none;
+      max-width: 88%;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 30px var(--shadow);
+      transition: opacity .16s ease, transform .16s ease;
+      text-align: center;
+      font-weight: 700;
+      font-size: .9rem;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: color-mix(in srgb, var(--bg) 70%, transparent);
+      backdrop-filter: blur(6px);
+    }
+
+    .menu-card {
+      width: min(94%, 600px);
+      max-height: 92%;
+      overflow: auto;
+      padding: 22px;
+      border-radius: 22px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 80px var(--shadow);
+    }
+
+    .menu-card h2 {
+      margin: 0 0 6px;
+      font-size: clamp(1.6rem, 3vw, 2.25rem);
+      text-align: center;
+    }
+
+    .menu-card > p {
+      margin: 0 auto 16px;
+      max-width: 510px;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.48;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .setting {
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 11px;
+    }
+
+    .setting label {
+      display: block;
+      color: var(--muted);
+      font-size: .83rem;
+      margin-bottom: 7px;
+    }
+
+    select {
+      width: 100%;
+      min-height: 42px;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .primary {
+      width: 100%;
+      color: #04131d;
+      border: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      padding: 12px 18px;
+      font-weight: 900;
+      font-size: 1.03rem;
+    }
+
+    .secondary {
+      width: 100%;
+      color: var(--text);
+      background: var(--panel-soft);
+      padding: 10px 14px;
+      font-weight: 750;
+    }
+
+    .menu-actions {
+      display: grid;
+      gap: 9px;
+    }
+
+    .info-box {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--accent) 10%, var(--panel-soft));
+      border: 1px solid var(--border);
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: .88rem;
+    }
+
+    .info-box strong { color: var(--text); }
+
+    .pause-actions, .over-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .score-big {
+      font-size: 2.1rem;
+      font-weight: 900;
+      text-align: center;
+      margin: 8px 0 4px;
+    }
+
+    .best {
+      color: var(--accent);
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .footer-hints {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: .86rem;
+      margin-top: 10px;
+    }
+
+    .mobile-controls {
+      display: none;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .mobile-controls button {
+      flex: 1;
+      min-height: 52px;
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 820px) {
+      .hud {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .hud-card.health { grid-column: 1 / -1; }
+      .mobile-controls { display: flex; }
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 9px; }
+      .menu-grid { grid-template-columns: 1fr; }
+      .pause-actions, .over-actions { grid-template-columns: 1fr; }
+      .hud { grid-template-columns: 1fr 1fr; }
+      .hud-card.health { grid-column: 1 / -1; }
+      .brand p { display: none; }
+    }
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>💻 Laptop Care <span style="color:var(--accent)">V3.1</span></h1>
+      <p>Sorgfalt schützt Geräte – jeder Treffer bleibt sichtbar.</p>
+    </div>
+    <div class="top-actions">
+      <button id="themeButton" class="ghost-btn" type="button">☀️ Light</button>
+      <button id="pauseTopButton" class="ghost-btn" type="button">⏸ Pause</button>
+    </div>
+  </header>
+
+  <section class="hud" aria-label="Spielstatus">
+    <div class="hud-card health">
+      <small>Laptop-Zustand</small>
+      <div class="health-row">
+        <div class="health-track"><div id="healthFill"></div></div>
+        <strong id="healthText">100%</strong>
+      </div>
+    </div>
+    <div class="hud-card"><small>Punkte</small><strong id="scoreText">0</strong></div>
+    <div class="hud-card"><small>Level</small><strong id="levelText">1</strong></div>
+    <div class="hud-card"><small>Highscore</small><strong id="bestText">0</strong></div>
+    <div class="hud-card"><small>Schutz</small><strong id="shieldText">—</strong></div>
+  </section>
+
+  <section class="game-shell">
+    <canvas id="game" width="960" height="540" aria-label="Laptop Care Spielfeld"></canvas>
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <div id="mainMenu" class="overlay">
+      <div class="menu-card">
+        <h2>Laptop Care V3.1</h2>
+        <p>Schütze den Laptop vor herunterfallenden Gegenständen. In V3 teleportierst du sofort, sobald auch nur ein Pixel des Laptops ein Seiten-Portal berührt. Treffer verursachen weiterhin sichtbare Risse, Kratzer, Flüssigkeitsschäden und Dellen.</p>
+
+        <div class="menu-grid">
+          <div class="setting">
+            <label for="difficultySelect">Schwierigkeit</label>
+            <select id="difficultySelect">
+              <option value="easy">Einfach</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Schwer</option>
+              <option value="extreme">Extrem</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label for="soundSelect">Sound & Musik</label>
+            <select id="soundSelect">
+              <option value="on" selected>An (Effekte + Musik)</option>
+              <option value="off">Aus</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="menu-actions">
+          <button id="startButton" class="primary" type="button">▶ Spiel starten</button>
+          <button id="menuThemeButton" class="secondary" type="button">☀️ Light Mode</button>
+        </div>
+
+        <div class="info-box">
+          <strong>Steuerung:</strong> A/D oder ←/→ · Pause mit Leertaste oder ESC.<br>
+          <strong>Neu in V3:</strong> Seiten-Portale mit Teleport, Reparatur-Kits, Menü, Dark/Light Mode, Highscore, Schutzmatten und sichtbare Schadensarten.
+        </div>
+      </div>
+    </div>
+
+    <div id="pauseMenu" class="overlay hidden">
+      <div class="menu-card">
+        <h2>⏸ Pause</h2>
+        <p>Der Laptop ist gerade sicher. Du kannst weiterspielen, neu starten oder ins Hauptmenü zurückgehen.</p>
+        <div class="pause-actions">
+          <button id="resumeButton" class="primary" type="button">Weiter</button>
+          <button id="restartButtonPause" class="secondary" type="button">Neu starten</button>
+          <button id="menuButtonPause" class="secondary" type="button">Hauptmenü</button>
+          <button id="pauseThemeButton" class="secondary" type="button">Theme wechseln</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="gameOverMenu" class="overlay hidden">
+      <div class="menu-card">
+        <h2>💥 Game Over</h2>
+        <p>Der Laptop wurde zu stark beschädigt.</p>
+        <div id="finalScore" class="score-big">0 Punkte</div>
+        <div id="finalBest" class="best">Highscore: 0</div>
+        <div class="info-box">
+          <strong>Sorgfalt:</strong> Geräte sollten vor Stössen, Flüssigkeiten und unnötigen Belastungen geschützt werden. Ein aufgeräumter Arbeitsplatz verhindert viele Schäden bereits im Voraus.
+        </div>
+        <div class="over-actions">
+          <button id="restartButtonOver" class="primary" type="button">Nochmal spielen</button>
+          <button id="menuButtonOver" class="secondary" type="button">Hauptmenü</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mobile-controls">
+    <button id="leftButton" type="button">← Links</button>
+    <button id="rightButton" type="button">Rechts →</button>
+  </div>
+
+  <div class="footer-hints">
+    <span>⚡ Berühre mit nur einem Pixel ein Seiten-Portal und du teleportierst sofort – ohne Schutzzeit.</span>
+    <span>🛡️ Schutzmatten blocken Treffer · 🧰 Reparatur-Kits stellen Zustand wieder her.</span>
+  </div>
+</main>
+
+<script>
+(() => {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const healthText = document.getElementById("healthText");
+  const healthFill = document.getElementById("healthFill");
+  const scoreText = document.getElementById("scoreText");
+  const levelText = document.getElementById("levelText");
+  const bestText = document.getElementById("bestText");
+  const shieldText = document.getElementById("shieldText");
+  const toast = document.getElementById("toast");
+
+  const mainMenu = document.getElementById("mainMenu");
+  const pauseMenu = document.getElementById("pauseMenu");
+  const gameOverMenu = document.getElementById("gameOverMenu");
+  const difficultySelect = document.getElementById("difficultySelect");
+  const soundSelect = document.getElementById("soundSelect");
+  const finalScore = document.getElementById("finalScore");
+  const finalBest = document.getElementById("finalBest");
+
+  let state = "menu";
+  let health = 100;
+  let score = 0;
+  let level = 1;
+  let best = 0;
+  let shield = 0;
+  let objects = [];
+  let cracks = [];
+  let scratches = [];
+  let spills = [];
+  let dents = [];
+  let particles = [];
+  let protectionPad = null;
+  let padCooldown = 7;
+  let repairKit = null;
+  let repairCooldown = 14;
+  let portalFx = [];
+  let portalFlash = 0;
+  let spawnTimer = 0;
+  let lastTime = performance.now();
+  let keys = {};
+  let hitFlash = 0;
+  let shake = 0;
+  let toastTimer = null;
+  let audioCtx = null;
+  let musicTimer = null;
+  let musicStep = 0;
+  let musicGain = null;
+  let theme = "dark";
+
+  const laptop = {
+    x: 405,
+    y: 398,
+    width: 150,
+    height: 104,
+    speed: 500
+  };
+
+  const configs = {
+    easy:    { speed: .82, spawn: 1.18, damage: .75, multi: .15 },
+    normal:  { speed: 1.00, spawn: 1.00, damage: 1.00, multi: .32 },
+    hard:    { speed: 1.18, spawn: .82, damage: 1.12, multi: .48 },
+    extreme: { speed: 1.38, spawn: .67, damage: 1.22, multi: .66 }
+  };
+
+  const objectTypes = [
+    { emoji: "☕", name: "Kaffee", damage: 28, size: 44, kind: "spill", tip: "Getränke gehören nicht direkt neben elektronische Geräte." },
+    { emoji: "📚", name: "Bücher", damage: 20, size: 50, kind: "crack", tip: "Schwere Gegenstände sollten nicht auf einem Laptop liegen." },
+    { emoji: "🔨", name: "Werkzeug", damage: 38, size: 46, kind: "crack", tip: "Harte Gegenstände können Display und Gehäuse stark beschädigen." },
+    { emoji: "🥤", name: "Getränk", damage: 25, size: 44, kind: "spill", tip: "Flüssigkeit kann Tastatur und Elektronik beschädigen." },
+    { emoji: "✏️", name: "Stift", damage: 11, size: 34, kind: "scratch", tip: "Auch kleine Gegenstände können Kratzer verursachen." },
+    { emoji: "📱", name: "Handy", damage: 18, size: 38, kind: "dent", tip: "Gegenstände nicht auf Geräte fallen lassen." }
+  ];
+
+  function loadPrefs() {
+    try {
+      best = Number(localStorage.getItem("laptopCareV3Best") || localStorage.getItem("laptopCareV2Best") || 0);
+      theme = localStorage.getItem("laptopCareTheme") || "dark";
+    } catch (_) {}
+    setTheme(theme);
+    bestText.textContent = Math.floor(best);
+  }
+
+  function saveBest() {
+    try { localStorage.setItem("laptopCareV3Best", String(best)); } catch (_) {}
+  }
+
+  function setTheme(next) {
+    theme = next === "light" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    const label = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+    document.getElementById("themeButton").textContent = label;
+    document.getElementById("menuThemeButton").textContent = label + " Mode";
+    try { localStorage.setItem("laptopCareTheme", theme); } catch (_) {}
+    render();
+  }
+
+  function toggleTheme() {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }
+
+  function sound(freq, duration = .08, type = "sine", volume = .035) {
+    if (soundSelect.value !== "on") return;
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.value = volume;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + duration);
+      osc.stop(audioCtx.currentTime + duration);
+    } catch (_) {}
+  }
+
+
+  function ensureAudio() {
+    if (soundSelect.value !== "on") return false;
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function startMusic() {
+    stopMusic();
+    if (!ensureAudio()) return;
+
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = 0.018;
+    musicGain.connect(audioCtx.destination);
+
+    const bass = [110.00, 110.00, 130.81, 98.00, 110.00, 146.83, 130.81, 98.00];
+    const lead = [329.63, 392.00, 440.00, 392.00, 329.63, 293.66, 261.63, 293.66];
+
+    const playStep = () => {
+      if (state !== "playing" || soundSelect.value !== "on" || !audioCtx || !musicGain) return;
+
+      const now = audioCtx.currentTime;
+      const b = audioCtx.createOscillator();
+      const bg = audioCtx.createGain();
+      b.type = "triangle";
+      b.frequency.value = bass[musicStep % bass.length];
+      bg.gain.setValueAtTime(0.0001, now);
+      bg.gain.exponentialRampToValueAtTime(0.045, now + 0.015);
+      bg.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+      b.connect(bg);
+      bg.connect(musicGain);
+      b.start(now);
+      b.stop(now + 0.36);
+
+      if (musicStep % 2 === 0) {
+        const l = audioCtx.createOscillator();
+        const lg = audioCtx.createGain();
+        l.type = "sine";
+        l.frequency.value = lead[musicStep % lead.length];
+        lg.gain.setValueAtTime(0.0001, now);
+        lg.gain.exponentialRampToValueAtTime(0.018, now + 0.02);
+        lg.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        l.connect(lg);
+        lg.connect(musicGain);
+        l.start(now);
+        l.stop(now + 0.24);
+      }
+
+      musicStep++;
+    };
+
+    playStep();
+    musicTimer = setInterval(playStep, 360);
+  }
+
+  function stopMusic() {
+    if (musicTimer) {
+      clearInterval(musicTimer);
+      musicTimer = null;
+    }
+    if (musicGain) {
+      try { musicGain.disconnect(); } catch (_) {}
+      musicGain = null;
+    }
+  }
+
+  function showToast(text) {
+    toast.textContent = text;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 1500);
+  }
+
+  function updateHud() {
+    health = Math.max(0, Math.min(100, health));
+    healthText.textContent = Math.round(health) + "%";
+    healthFill.style.width = health + "%";
+    scoreText.textContent = Math.floor(score);
+    levelText.textContent = level;
+    bestText.textContent = Math.floor(best);
+    shieldText.textContent = shield > 0 ? "🛡️ Aktiv" : "—";
+
+    if (health > 60) healthFill.style.background = "linear-gradient(90deg,#22c55e,#84cc16)";
+    else if (health > 30) healthFill.style.background = "linear-gradient(90deg,#f59e0b,#facc15)";
+    else healthFill.style.background = "linear-gradient(90deg,#ef4444,#f97316)";
+  }
+
+  function resetGame() {
+    health = 100;
+    score = 0;
+    level = 1;
+    shield = 0;
+    objects = [];
+    cracks = [];
+    scratches = [];
+    spills = [];
+    dents = [];
+    particles = [];
+    protectionPad = null;
+    padCooldown = 7;
+    repairKit = null;
+    repairCooldown = 14;
+    portalFx = [];
+    portalFlash = 0;
+    spawnTimer = 0;
+    hitFlash = 0;
+    shake = 0;
+    laptop.x = canvas.width / 2 - laptop.width / 2;
+    updateHud();
+  }
+
+  function startGame() {
+    resetGame();
+    state = "playing";
+    mainMenu.classList.add("hidden");
+    pauseMenu.classList.add("hidden");
+    gameOverMenu.classList.add("hidden");
+    lastTime = performance.now();
+    sound(520, .08, "triangle", .025);
+    startMusic();
+  }
+
+  function goMenu() {
+    stopMusic();
+    state = "menu";
+    mainMenu.classList.remove("hidden");
+    pauseMenu.classList.add("hidden");
+    gameOverMenu.classList.add("hidden");
+    render();
+  }
+
+  function pauseGame() {
+    if (state !== "playing") return;
+    stopMusic();
+    state = "paused";
+    pauseMenu.classList.remove("hidden");
+  }
+
+  function resumeGame() {
+    if (state !== "paused") return;
+    state = "playing";
+    pauseMenu.classList.add("hidden");
+    lastTime = performance.now();
+    startMusic();
+  }
+
+  function togglePause() {
+    if (state === "playing") pauseGame();
+    else if (state === "paused") resumeGame();
+  }
+
+  function endGame() {
+    stopMusic();
+    state = "gameover";
+    const final = Math.floor(score);
+    if (final > best) {
+      best = final;
+      saveBest();
+      sound(740, .12, "triangle", .04);
+      setTimeout(() => sound(880, .14, "triangle", .035), 110);
+    } else {
+      sound(120, .22, "sawtooth", .025);
+    }
+    updateHud();
+    finalScore.textContent = final + " Punkte";
+    finalBest.textContent = "Highscore: " + Math.floor(best);
+    gameOverMenu.classList.remove("hidden");
+  }
+
+  function spawnObject(extraSpeed = 0) {
+    const cfg = configs[difficultySelect.value] || configs.normal;
+    const type = objectTypes[Math.floor(Math.random() * objectTypes.length)];
+    const baseSpeed = (205 + Math.random() * 125 + level * 27 + extraSpeed) * cfg.speed;
+
+    objects.push({
+      x: Math.random() * (canvas.width - 80) + 20,
+      y: -60,
+      speed: baseSpeed,
+      drift: (Math.random() - .5) * (20 + level * 3),
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - .5) * 4,
+      ...type
+    });
+  }
+
+  function spawnPad() {
+    protectionPad = {
+      x: 60 + Math.random() * (canvas.width - 220),
+      y: 477,
+      width: 150,
+      height: 24,
+      life: 5
+    };
+    showToast("🛡️ Schutzmatte erschienen – fahre darüber!");
+  }
+
+  function spawnRepairKit() {
+    repairKit = {
+      x: 70 + Math.random() * (canvas.width - 220),
+      y: 465,
+      width: 92,
+      height: 34,
+      life: 6
+    };
+    showToast("🧰 Reparatur-Kit erschienen – fahre darüber!");
+  }
+
+  function spawnPortalBurst(x, y, side) {
+    for (let i = 0; i < 18; i++) {
+      portalFx.push({
+        x,
+        y: y + (Math.random() - .5) * 90,
+        vx: (side === "left" ? 1 : -1) * (35 + Math.random() * 110),
+        vy: (Math.random() - .5) * 130,
+        life: .35 + Math.random() * .4,
+        maxLife: .75
+      });
+    }
+  }
+
+  function triggerTeleport(fromSide) {
+    portalFlash = .22;
+    const midY = laptop.y + laptop.height / 2;
+
+    if (fromSide === "left") {
+      spawnPortalBurst(3, midY, "left");
+      spawnPortalBurst(canvas.width - 3, midY, "right");
+    } else {
+      spawnPortalBurst(canvas.width - 3, midY, "right");
+      spawnPortalBurst(3, midY, "left");
+    }
+
+    sound(620, .07, "sine", .022);
+    setTimeout(() => sound(940, .08, "triangle", .018), 55);
+  }
+
+  function wrapLaptop() {
+    // Sofort-Teleport beim ersten Pixel Kontakt mit dem Portal.
+    if (laptop.x < 0) {
+      laptop.x = canvas.width - laptop.width;
+      triggerTeleport("left");
+      showToast("⚡ Teleport!");
+    }
+    else if (laptop.x + laptop.width > canvas.width) {
+      laptop.x = 0;
+      triggerTeleport("right");
+      showToast("⚡ Teleport!");
+    }
+  }
+
+  function laptopIntersects(rect) {
+    return !(
+      rect.x + rect.width < laptop.x + 10 ||
+      rect.x > laptop.x + laptop.width - 10 ||
+      rect.y + rect.height < laptop.y + 10 ||
+      rect.y > laptop.y + laptop.height
+    );
+  }
+
+  function objectHitsLaptop(o) {
+    return !(
+      o.x + o.size < laptop.x + 12 ||
+      o.x > laptop.x + laptop.width - 12 ||
+      o.y + o.size < laptop.y + 10 ||
+      o.y > laptop.y + laptop.height
+    );
+  }
+
+  function addDamage(o) {
+    const sx = 24 + Math.random() * (laptop.width - 48);
+    const sy = 16 + Math.random() * 43;
+
+    if (o.kind === "spill") {
+      spills.push({
+        x: 18 + Math.random() * (laptop.width - 36),
+        y: 64 + Math.random() * 27,
+        r: 7 + Math.random() * 10,
+        drip: 6 + Math.random() * 13
+      });
+    } else if (o.kind === "scratch") {
+      scratches.push({
+        x: 16 + Math.random() * (laptop.width - 42),
+        y: 72 + Math.random() * 18,
+        len: 18 + Math.random() * 26,
+        angle: -.5 + Math.random()
+      });
+    } else if (o.kind === "dent") {
+      dents.push({
+        x: 12 + Math.random() * (laptop.width - 24),
+        y: 73 + Math.random() * 18,
+        r: 4 + Math.random() * 5
+      });
+    } else {
+      const rays = [];
+      for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++) {
+        rays.push({
+          a: Math.random() * Math.PI * 2,
+          len: 12 + Math.random() * 31,
+          bend: (Math.random() - .5) * 9
+        });
+      }
+      cracks.push({ x: sx, y: sy, rays });
+    }
+
+    // Every heavier hit gets at least a small crack
+    if (o.damage >= 25 && o.kind !== "crack") {
+      cracks.push({
+        x: sx,
+        y: sy,
+        rays: [
+          { a: .3, len: 24, bend: 2 },
+          { a: 2.2, len: 18, bend: -2 },
+          { a: 4.4, len: 14, bend: 1 }
+        ]
+      });
+    }
+
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        x: laptop.x + laptop.width / 2,
+        y: laptop.y + 35,
+        vx: (Math.random() - .5) * 180,
+        vy: -40 - Math.random() * 110,
+        life: .45 + Math.random() * .25
+      });
+    }
+
+    hitFlash = .2;
+    shake = .28;
+  }
+
+  function update(dt) {
+    if (state !== "playing") return;
+
+    const cfg = configs[difficultySelect.value] || configs.normal;
+
+    if (keys["ArrowLeft"] || keys["a"] || keys["A"]) laptop.x -= laptop.speed * dt;
+    if (keys["ArrowRight"] || keys["d"] || keys["D"]) laptop.x += laptop.speed * dt;
+    wrapLaptop();
+
+    score += dt * (difficultySelect.value === "extreme" ? 19 : difficultySelect.value === "hard" ? 17 : 15);
+    level = Math.min(15, 1 + Math.floor(score / 90));
+
+    const interval = Math.max(.18, (.91 - level * .052) * cfg.spawn);
+    spawnTimer += dt;
+
+    if (spawnTimer >= interval) {
+      spawnTimer = 0;
+      spawnObject();
+
+      if (level >= 4 && Math.random() < cfg.multi) spawnObject(28);
+      if (level >= 7 && Math.random() < cfg.multi * .65) spawnObject(65);
+      if (level >= 10 && Math.random() < cfg.multi * .35) spawnObject(105);
+    }
+
+    padCooldown -= dt;
+    if (!protectionPad && padCooldown <= 0 && shield === 0) {
+      spawnPad();
+      padCooldown = 13 + Math.random() * 6;
+    }
+
+    if (protectionPad) {
+      protectionPad.life -= dt;
+      if (laptopIntersects(protectionPad)) {
+        shield = 1;
+        protectionPad = null;
+        sound(820, .12, "triangle", .03);
+        showToast("🛡️ Schutz aktiviert – der nächste Treffer wird abgefangen.");
+      } else if (protectionPad.life <= 0) {
+        protectionPad = null;
+      }
+    }
+
+    repairCooldown -= dt;
+    if (!repairKit && health < 88 && repairCooldown <= 0) {
+      spawnRepairKit();
+      repairCooldown = 18 + Math.random() * 9;
+    }
+
+    if (repairKit) {
+      repairKit.life -= dt;
+      if (laptopIntersects(repairKit)) {
+        const healed = Math.min(18, 100 - health);
+        health += healed;
+        repairKit = null;
+        sound(720, .09, "triangle", .025);
+        setTimeout(() => sound(880, .10, "triangle", .022), 75);
+        showToast("🧰 Repariert! +" + Math.round(healed) + "% Zustand");
+      } else if (repairKit.life <= 0) {
+        repairKit = null;
+      }
+    }
+
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const o = objects[i];
+      o.y += o.speed * dt;
+      o.x += o.drift * dt;
+      o.rotation += o.rotationSpeed * dt;
+
+      if (o.x < 0 || o.x > canvas.width - o.size) {
+        o.x = Math.max(0, Math.min(canvas.width - o.size, o.x));
+        o.drift *= -1;
+      }
+
+      if (objectHitsLaptop(o)) {
+        if (shield > 0) {
+          shield = 0;
+          sound(980, .08, "square", .025);
+          showToast("🛡️ Schutzmatte hat den Treffer abgefangen!");
+        } else {
+          const dmg = Math.round(o.damage * cfg.damage);
+          health -= dmg;
+          addDamage(o);
+          sound(150, .11, "sawtooth", .035);
+          showToast(o.name + " getroffen! -" + dmg + "% · " + o.tip);
+        }
+        objects.splice(i, 1);
+        continue;
+      }
+
+      if (o.y > canvas.height + 70) {
+        score += 3;
+        objects.splice(i, 1);
+      }
+    }
+
+    particles.forEach(p => {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 250 * dt;
+      p.life -= dt;
+    });
+    particles = particles.filter(p => p.life > 0);
+
+    portalFx.forEach(p => {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+    });
+    portalFx = portalFx.filter(p => p.life > 0);
+    portalFlash = Math.max(0, portalFlash - dt);
+
+    hitFlash = Math.max(0, hitFlash - dt);
+    shake = Math.max(0, shake - dt);
+
+    if (health <= 0) {
+      health = 0;
+      endGame();
+    }
+
+    if (score > best) best = score;
+    updateHud();
+  }
+
+  function rr(x,y,w,h,r) {
+    const q = Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+q,y);
+    ctx.arcTo(x+w,y,x+w,y+h,q);
+    ctx.arcTo(x+w,y+h,x,y+h,q);
+    ctx.arcTo(x,y+h,x,y,q);
+    ctx.arcTo(x,y,x+w,y,q);
+    ctx.closePath();
+  }
+
+  function drawBackground() {
+    const light = theme === "light";
+    const g = ctx.createLinearGradient(0,0,0,canvas.height);
+    if (light) {
+      g.addColorStop(0,"#dff3ff");
+      g.addColorStop(.62,"#eef7fb");
+      g.addColorStop(1,"#d6c2a3");
+    } else {
+      g.addColorStop(0,"#07111e");
+      g.addColorStop(.64,"#0c1728");
+      g.addColorStop(1,"#1a2638");
+    }
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // subtle wall grid
+    ctx.strokeStyle = light ? "rgba(15,23,42,.045)" : "rgba(255,255,255,.035)";
+    ctx.lineWidth = 1;
+    for (let x=0; x<canvas.width; x+=40) {
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,455); ctx.stroke();
+    }
+    for (let y=0; y<455; y+=40) {
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+    }
+
+    // desk
+    ctx.fillStyle = light ? "#c7a77f" : "#26364b";
+    ctx.fillRect(0, 500, canvas.width, 40);
+    ctx.fillStyle = light ? "rgba(89,62,37,.18)" : "rgba(255,255,255,.05)";
+    ctx.fillRect(0, 500, canvas.width, 2);
+
+    // V3 side portals
+    const pulse = 0.72 + Math.sin(performance.now() / 230) * 0.18;
+    const portalTop = 330;
+    const portalBottom = 498;
+
+    ctx.save();
+    ctx.lineWidth = 6;
+    ctx.shadowBlur = 18;
+
+    ctx.strokeStyle = `rgba(34,211,238,${pulse})`;
+    ctx.shadowColor = "rgba(34,211,238,.8)";
+    ctx.beginPath();
+    ctx.moveTo(5, portalTop);
+    ctx.lineTo(5, portalBottom);
+    ctx.stroke();
+
+    ctx.strokeStyle = `rgba(168,85,247,${pulse})`;
+    ctx.shadowColor = "rgba(168,85,247,.8)";
+    ctx.beginPath();
+    ctx.moveTo(canvas.width - 5, portalTop);
+    ctx.lineTo(canvas.width - 5, portalBottom);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.font = "700 12px system-ui";
+    ctx.fillStyle = light ? "#0e7490" : "#67e8f9";
+    ctx.fillText("⟵ SOFORT-PORTAL", 14, 348);
+    ctx.textAlign = "right";
+    ctx.fillStyle = light ? "#7e22ce" : "#d8b4fe";
+    ctx.fillText("SOFORT-PORTAL ⟶", canvas.width - 14, 348);
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = light ? "rgba(15,23,42,.55)" : "rgba(255,255,255,.45)";
+    ctx.font = "600 14px system-ui";
+    ctx.fillText("Sorgfalt = Schäden vermeiden", 20, 28);
+  }
+
+  function drawPad() {
+    if (!protectionPad) return;
+    ctx.save();
+    const p = protectionPad;
+    ctx.fillStyle = "rgba(34,197,94,.18)";
+    rr(p.x,p.y,p.width,p.height,8); ctx.fill();
+    ctx.strokeStyle = "rgba(34,197,94,.85)";
+    ctx.lineWidth = 2;
+    rr(p.x,p.y,p.width,p.height,8); ctx.stroke();
+    ctx.fillStyle = theme === "light" ? "#166534" : "#86efac";
+    ctx.font = "700 12px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("🛡️ SCHUTZMATTE", p.x+p.width/2, p.y+16);
+    ctx.restore();
+  }
+
+  function drawRepairKit() {
+    if (!repairKit) return;
+    const r = repairKit;
+    ctx.save();
+    ctx.fillStyle = "rgba(34,197,94,.18)";
+    rr(r.x, r.y, r.width, r.height, 9);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(34,197,94,.92)";
+    ctx.lineWidth = 2;
+    rr(r.x, r.y, r.width, r.height, 9);
+    ctx.stroke();
+    ctx.font = "700 13px system-ui";
+    ctx.fillStyle = theme === "light" ? "#166534" : "#86efac";
+    ctx.textAlign = "center";
+    ctx.fillText("🧰 +18%", r.x + r.width / 2, r.y + 22);
+    ctx.restore();
+  }
+
+  function drawObjects() {
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const o of objects) {
+      ctx.save();
+      ctx.translate(o.x + o.size/2, o.y + o.size/2);
+      ctx.rotate(o.rotation);
+      ctx.font = o.size + "px system-ui, Apple Color Emoji, Segoe UI Emoji";
+      ctx.fillText(o.emoji,0,0);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawLaptop() {
+    ctx.save();
+
+    const x = laptop.x, y = laptop.y, w = laptop.width;
+
+    // shadow
+    ctx.fillStyle = "rgba(0,0,0,.26)";
+    ctx.beginPath();
+    ctx.ellipse(x+w/2,y+108,w*.61,10,0,0,Math.PI*2);
+    ctx.fill();
+
+    // display body
+    const frame = ctx.createLinearGradient(x,y,x+w,y+80);
+    frame.addColorStop(0, theme==="light" ? "#475569" : "#334155");
+    frame.addColorStop(.55, "#0f172a");
+    frame.addColorStop(1, "#1e293b");
+    ctx.fillStyle = frame;
+    rr(x+11,y,w-22,72,11); ctx.fill();
+
+    // webcam
+    ctx.fillStyle = "#020617";
+    ctx.beginPath(); ctx.arc(x+w/2,y+7,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = "rgba(125,211,252,.55)";
+    ctx.beginPath(); ctx.arc(x+w/2,y+7,1.1,0,Math.PI*2); ctx.fill();
+
+    // display
+    const sg = ctx.createLinearGradient(x,y+12,x+w,y+62);
+    if (health > 30) {
+      sg.addColorStop(0, theme==="light" ? "#67e8f9" : "#38bdf8");
+      sg.addColorStop(.55, "#2563eb");
+      sg.addColorStop(1, "#312e81");
+    } else {
+      sg.addColorStop(0,"#334155");
+      sg.addColorStop(1,"#111827");
+    }
+    ctx.fillStyle = sg;
+    rr(x+20,y+13,w-40,48,6); ctx.fill();
+
+    // fake desktop
+    ctx.fillStyle = "rgba(255,255,255,.16)";
+    rr(x+29,y+22,28,19,3); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.28)";
+    rr(x+34,y+26,18,2.8,1); ctx.fill();
+    rr(x+34,y+31,12,2.8,1); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.15)";
+    rr(x+68,y+49,52,4,2); ctx.fill();
+
+    // screen damage cracks
+    ctx.strokeStyle = "rgba(248,250,252,.96)";
+    ctx.lineWidth = 1.55;
+    for (const c of cracks) {
+      const cx=x+c.x, cy=y+c.y;
+      for (const ray of c.rays) {
+        const mx=cx+Math.cos(ray.a)*ray.len*.45;
+        const my=cy+Math.sin(ray.a)*ray.len*.45;
+        const ex=cx+Math.cos(ray.a)*ray.len+ray.bend;
+        const ey=cy+Math.sin(ray.a)*ray.len;
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(mx,my); ctx.lineTo(ex,ey); ctx.stroke();
+        if (ray.len>20) {
+          ctx.beginPath();
+          ctx.moveTo(mx,my);
+          ctx.lineTo(mx+Math.cos(ray.a+.75)*8,my+Math.sin(ray.a+.75)*8);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle="rgba(255,255,255,.82)";
+      ctx.beginPath();ctx.arc(cx,cy,1.8,0,Math.PI*2);ctx.fill();
+    }
+
+    if (health <= 28) {
+      ctx.fillStyle = "rgba(2,6,23,.4)";
+      rr(x+20,y+13,w-40,48,6); ctx.fill();
+      ctx.strokeStyle = "rgba(239,68,68,.88)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x+31,y+16); ctx.lineTo(x+57,y+35); ctx.lineTo(x+47,y+60);
+      ctx.moveTo(x+113,y+14); ctx.lineTo(x+91,y+31); ctx.lineTo(x+104,y+59);
+      ctx.stroke();
+    }
+
+    // hinge
+    ctx.fillStyle="#475569";
+    rr(x+36,y+68,w-72,8,3);ctx.fill();
+
+    // keyboard base
+    const bg=ctx.createLinearGradient(x,y+70,x,y+101);
+    bg.addColorStop(0,"#d5dde8");
+    bg.addColorStop(1,"#64748b");
+    ctx.fillStyle=bg;
+    rr(x,y+70,w,29,7);ctx.fill();
+
+    // keys
+    ctx.fillStyle="#334155";
+    for(let row=0;row<3;row++){
+      for(let col=0;col<8;col++){
+        if ((health<50 && row===1 && col===1) || (health<20 && row===0 && col===6)) continue;
+        rr(x+18+col*14,y+75+row*6,9,3.6,1);ctx.fill();
+      }
+    }
+
+    // touchpad
+    ctx.strokeStyle="rgba(51,65,85,.75)";
+    ctx.lineWidth=1;
+    rr(x+55,y+86,40,9,2);ctx.stroke();
+
+    // spills
+    for(const s of spills){
+      ctx.fillStyle="rgba(120,72,28,.58)";
+      ctx.beginPath();ctx.arc(x+s.x,y+s.y,s.r,0,Math.PI*2);ctx.fill();
+      ctx.fillRect(x+s.x-2,y+s.y+s.r-1,4,s.drip);
+    }
+
+    // scratches
+    ctx.strokeStyle="rgba(30,41,59,.9)";
+    ctx.lineWidth=1.3;
+    for(const s of scratches){
+      ctx.beginPath();
+      ctx.moveTo(x+s.x,y+s.y);
+      ctx.lineTo(x+s.x+Math.cos(s.angle)*s.len,y+s.y+Math.sin(s.angle)*s.len);
+      ctx.stroke();
+    }
+
+    // dents
+    for(const d of dents){
+      ctx.strokeStyle="rgba(30,41,59,.8)";
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(x+d.x,y+d.y,d.r,0,Math.PI*1.65);ctx.stroke();
+    }
+
+    // shield ring
+    if(shield>0){
+      ctx.strokeStyle="rgba(34,197,94,.95)";
+      ctx.lineWidth=3;
+      rr(x-7,y-8,w+14,116,15);ctx.stroke();
+      ctx.fillStyle="rgba(34,197,94,.10)";
+      rr(x-7,y-8,w+14,116,15);ctx.fill();
+    }
+
+    if(hitFlash>0){
+      ctx.strokeStyle="rgba(239,68,68,.95)";
+      ctx.lineWidth=5;
+      rr(x-8,y-9,w+16,118,16);ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    ctx.save();
+    for(const p of particles){
+      ctx.globalAlpha=Math.max(0,p.life/.7);
+      ctx.fillStyle="#f8fafc";
+      ctx.fillRect(p.x,p.y,3,3);
+    }
+    ctx.restore();
+  }
+
+  function drawPortalFx() {
+    ctx.save();
+
+    for (const p of portalFx) {
+      const alpha = Math.max(0, p.life / p.maxLife);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.x < canvas.width / 2 ? "#67e8f9" : "#d8b4fe";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2 + alpha * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (portalFlash > 0) {
+      ctx.globalAlpha = Math.min(.22, portalFlash);
+      const g = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      g.addColorStop(0, "rgba(34,211,238,.65)");
+      g.addColorStop(.5, "rgba(255,255,255,0)");
+      g.addColorStop(1, "rgba(168,85,247,.65)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 320, canvas.width, 185);
+    }
+
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.save();
+    if (shake > 0 && state === "playing") {
+      const amount = shake * 12;
+      ctx.translate((Math.random()-.5)*amount,(Math.random()-.5)*amount);
+    }
+    drawBackground();
+    drawPad();
+    drawRepairKit();
+    drawObjects();
+    drawLaptop();
+    drawParticles();
+    drawPortalFx();
+    ctx.restore();
+  }
+
+  function loop(now) {
+    const dt=Math.min((now-lastTime)/1000,.04);
+    lastTime=now;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function moveStep(dir) {
+    if (state !== "playing") return;
+    laptop.x += dir * 78;
+    wrapLaptop();
+  }
+
+  document.getElementById("startButton").addEventListener("click", startGame);
+  document.getElementById("resumeButton").addEventListener("click", resumeGame);
+  document.getElementById("restartButtonPause").addEventListener("click", startGame);
+  document.getElementById("menuButtonPause").addEventListener("click", goMenu);
+  document.getElementById("restartButtonOver").addEventListener("click", startGame);
+  document.getElementById("menuButtonOver").addEventListener("click", goMenu);
+  document.getElementById("themeButton").addEventListener("click", toggleTheme);
+  document.getElementById("menuThemeButton").addEventListener("click", toggleTheme);
+  document.getElementById("pauseThemeButton").addEventListener("click", toggleTheme);
+  document.getElementById("pauseTopButton").addEventListener("click", togglePause);
+  document.getElementById("leftButton").addEventListener("click", () => moveStep(-1));
+  document.getElementById("rightButton").addEventListener("click", () => moveStep(1));
+
+  soundSelect.addEventListener("change", () => {
+    if (soundSelect.value === "off") {
+      stopMusic();
+    } else if (state === "playing") {
+      startMusic();
+    }
+  });
+
+  window.addEventListener("keydown", e => {
+    if (["ArrowLeft","ArrowRight"," ","Escape"].includes(e.key)) e.preventDefault();
+
+    if ((e.key === " " || e.key === "Escape") && (state==="playing" || state==="paused")) {
+      togglePause();
+      return;
+    }
+    keys[e.key]=true;
+  });
+
+  window.addEventListener("keyup", e => { keys[e.key]=false; });
+
+  loadPrefs();
+  resetGame();
+  render();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
